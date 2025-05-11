@@ -1,2 +1,2 @@
-# RentKubV2
+# RentKub
 all rental accommodation website project

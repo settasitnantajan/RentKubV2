@@ -1,0 +1,122 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Profile {
+  id        Int        @id @default(autoincrement())
+  clerkId   String     @unique
+  firstname String
+  lastname  String
+  imageUrl  String?
+  email     String
+  createAt  DateTime   @default(now())
+  updateAt  DateTime   @updatedAt
+  landmarks Landmark[]
+  bookings  Booking[]
+  favorites Favorite[]
+  comments  Comment[] // <-- Add relation to comments
+  reviews   Review[] // Relation to reviews
+}
+
+model Landmark {
+  id          Int        @id @default(autoincrement())
+  title       String
+  description String     @db.VarChar(1000)
+  price       Int        @default(0)
+  lat         Float
+  lng         Float
+  images      Json       @default("[]")
+  amenities   Json       @default("[]")
+  category    String
+  totalRooms  Int        @default(1) // <-- Add totalRooms, defaulting to 1 maybe? Adjust default as needed.
+  maxGuests   Int        @default(1) // <-- Add maxGuests, default 1
+  bedrooms    Int        @default(0) // <-- Add bedrooms, default 0 (studio)
+  beds        Int        @default(1) // <-- Add beds, default 1
+  baths       Int        @default(0) // <-- Add baths, default 0
+  address     String? // Or String if address is mandatory
+  createAt    DateTime   @default(now())
+  updateAt    DateTime   @updatedAt
+  profile     Profile    @relation(fields: [profileId], references: [clerkId])
+  profileId   String
+  bookings    Booking[]
+  favorites   Favorite[]
+  comments    Comment[] // <-- Add relation to comments
+  reviews     Review[] // Relation to reviews
+}
+
+model Booking {
+  id                    Int      @id @default(autoincrement())
+  totalNights           Int
+  checkIn               DateTime
+  checkOut              DateTime
+  total                 Int
+  paymentStatus         Boolean  @default(false)
+  confirmStatus         Boolean  @default(false) // New field for booking confirmation by host
+  checkInStatus         Boolean  @default(false) // New field for guest check-in
+  checkOutStatus        Boolean  @default(false) // New field for guest check-out
+  cancelledByUserStatus Boolean  @default(false) // New field for user cancellation
+  reviewed              Boolean  @default(false) // Has this booking been reviewed?
+  reviewId              Int?     @unique // Optional: Foreign key to the Review
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  profile    Profile  @relation(fields: [profileId], references: [clerkId])
+  profileId  String
+  landmark   Landmark @relation(fields: [landmarkId], references: [id])
+  landmarkId Int
+  review     Review?  @relation(fields: [reviewId], references: [id]) // Optional: Relation to the Review
+}
+
+model Favorite {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile    Profile  @relation(fields: [profileId], references: [clerkId])
+  profileId  String
+  landmark   Landmark @relation(fields: [landmarkId], references: [id])
+  landmarkId Int
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  text      String   @db.VarChar(500) // Max length for a comment
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile   Profile @relation(fields: [profileId], references: [clerkId])
+  profileId String // User who made the comment
+
+  landmark   Landmark @relation(fields: [landmarkId], references: [id])
+  landmarkId Int // Landmark the comment is about
+}
+
+model Review {
+  id                    Int      @id @default(autoincrement())
+  overallRating         Int // Overall experience rating, e.g., 1 to 5
+  customerSupportRating Int // Customer Support rating, e.g., 1 to 5
+  convenienceRating     Int // Convenience rating, e.g., 1 to 5
+  signalQualityRating   Int // Signal Quality rating (if applicable, e.g. for internet/phone), e.g., 1 to 5
+  text                  String?  @db.VarChar(1000) // Optional review text (comment)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  profile    Profile  @relation(fields: [profileId], references: [clerkId])
+  profileId  String // User who made the review
+  landmark   Landmark @relation(fields: [landmarkId], references: [id])
+  landmarkId Int // Landmark the review is about
+
+  // @@unique([profileId, landmarkId]) // Removed to allow multiple reviews for a landmark via different bookings
+  Booking Booking?
+}
