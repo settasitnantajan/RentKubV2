@@ -13,13 +13,6 @@ const UserIcon = () => {
     return (
       // Use a flex container for better alignment
       <div className="flex items-center gap-2">
-        {/* Display User Name */}
-        <p className="text-sm font-medium">
-          {" "}
-          {/* Optional: Adjust text style */}
-          {user.firstName} {user.lastName}
-        </p>
-
         {/* Conditionally display Admin Badge or User Image */}
         {isAdmin ? (
           // Display something distinct for Admins

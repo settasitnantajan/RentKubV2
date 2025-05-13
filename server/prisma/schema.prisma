@@ -18,6 +18,7 @@ model Profile {
   clerkId   String     @unique
   firstname String
   lastname  String
+  username  String?    // You can make this required (String) or unique (String @unique) if needed
   imageUrl  String?
   email     String
   createAt  DateTime   @default(now())

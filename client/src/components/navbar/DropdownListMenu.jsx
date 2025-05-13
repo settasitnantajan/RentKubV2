@@ -182,7 +182,14 @@ const DropdownListMenu = () => {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent>
-        <DropdownMenuLabel>My Account</DropdownMenuLabel>
+        <DropdownMenuLabel>
+          {isSignedIn && user ? (
+            user.firstName ? `Welcome, ${user.firstName}` : 
+            user.username ? `Welcome, ${user.username}` : "My Account"
+          ) : (
+            "My Account"
+          )}
+        </DropdownMenuLabel>
         <DropdownMenuSeparator />
 
         {publicLinks.map((item, index) => {

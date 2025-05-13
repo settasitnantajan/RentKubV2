@@ -14,7 +14,6 @@ import Checkout from "@/pages/user/Checkout";
 import CheckoutComplete from "@/pages/user/CheckoutComplete";
 import MyOrders from "@/pages/user/MyOrders";
 import Myfavorites from "@/pages/user/Myfavorites";
-import AccountSecurity from "@/pages/user/AccountSecurity";
 import HostDashboard from "@/pages/user/HostDashboard";
 import UpdateLandmark from "@/pages/user/UpdateLandmark"; // <-- Import the new page component
 
@@ -36,7 +35,6 @@ const AppRoutes = () => {
           <Route path="complete/:session" element={<CheckoutComplete />} />
           <Route path="myorders" element={<MyOrders />} />
           <Route path="my-favorites" element={<Myfavorites />} />
-          <Route path="account-security" element={<AccountSecurity />} />
           <Route path="host-dashboard" element={<HostDashboard />} />
           <Route path="update-landmark/:id" element={<UpdateLandmark />} />{" "}
           {/* <-- Add route for updating */}

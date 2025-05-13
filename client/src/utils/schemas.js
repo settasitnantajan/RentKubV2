@@ -40,4 +40,9 @@ export const ProfileSchema = z.object({
     .string()
     .min(2, "Lastname must be more than 2 charactor")
     .max(30, "Lastname must be less than 30 charactor"),
+  username: z.string()
+    .min(3, "Username must be at least 3 characters")
+    .regex(/^[a-zA-Z0-9_.-]+$/, "Username can only contain letters, numbers, dots, underscores, or hyphens")
+    .optional() // Make it optional if users don't have to set it immediately
+    .or(z.literal('')), // Allows an empty string if it's optional and the user clears it
 });

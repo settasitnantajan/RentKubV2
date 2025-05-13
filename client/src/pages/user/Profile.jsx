@@ -61,6 +61,7 @@ const Profile = () => {
     defaultValues: {
       firstname: "",
       lastname: "",
+      username: "", // Add username
     },
   });
   const { errors, isSubmitting } = formState;
@@ -103,6 +104,7 @@ const Profile = () => {
           const initialData = {
             firstname: user?.firstName || "",
             lastname: user?.lastName || "",
+            username: user?.username || "", // Pre-fill username from Clerk if available
           };
           reset(initialData);
           // Automatically open edit mode if profile is missing but Clerk has names
@@ -122,7 +124,7 @@ const Profile = () => {
 
     return () => { isMounted = false; };
     // Ensure reset is included if it's used within the effect for setting initial values
-  }, [userId, getToken, isAuthLoaded, user?.firstName, user?.lastName, reset]);
+  }, [userId, getToken, isAuthLoaded, user?.firstName, user?.lastName, user?.username, reset]);
 
   // Fetch Counts (Bookings & Favorites) - No changes needed here
   useEffect(() => {
@@ -196,7 +198,11 @@ const Profile = () => {
         try {
           // Use the submitted data (data.firstname, data.lastname)
           // Map to Clerk's expected fields (firstName, lastName)
-          await user.update({ firstName: data.firstname, lastName: data.lastname });
+          await user.update({
+            firstName: data.firstname,
+            lastName: data.lastname,
+            username: data.username, // Sync username with Clerk
+          });
           console.log("Clerk user session updated successfully.");
           // Optional: toast.info("User session updated.");
         } catch (clerkUpdateError) {
@@ -225,7 +231,11 @@ const Profile = () => {
   const handleCancelEdit = () => {
     setIsEditingDetails(false);
     // Reset form to the last known good state (fetched profile or initial Clerk data)
-    reset(profileData || { firstname: user?.firstName || "", lastname: user?.lastName || "" });
+    reset(profileData || {
+      firstname: user?.firstName || "",
+      lastname: user?.lastName || "",
+      username: profileData?.username || user?.username || "", // Reset username
+    });
   };
 
   // --- Loading / Auth States ---
@@ -302,32 +312,14 @@ const Profile = () => {
         <Card>
           <CardHeader className="flex flex-col sm:flex-row items-center gap-4 p-6">
             {/* Avatar with Edit Button */}
-            <div className="relative group">
-              <Avatar className="w-20 h-20 border-2 border-transparent group-hover:border-primary transition-colors">
+            <div className="relative"> {/* Removed group class if hover effect for border is not needed without edit button */}
+              <Avatar className="w-20 h-20"> {/* Removed hover border transition */}
                 <AvatarImage src={user?.imageUrl} alt="User profile picture" />
                 <AvatarFallback className="text-2xl">
                   {user?.firstName?.charAt(0).toUpperCase()}
                   {user?.lastName?.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                   <Button
-                    variant="outline"
-                    size="icon"
-                    className="absolute bottom-0 right-0 rounded-full w-7 h-7 bg-background border-primary text-primary hover:bg-primary/10"
-                    asChild
-                  >
-                    <Link to="/user/account-security">
-                      <Edit className="h-4 w-4" />
-                      <span className="sr-only">Edit Profile Picture</span>
-                    </Link>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Change profile picture (via Account Security)</p>
-                </TooltipContent>
-              </Tooltip>
             </div>
             {/* User Name and Email */}
             <div className="text-center sm:text-left">
@@ -336,8 +328,14 @@ const Profile = () => {
                 {user?.firstName || profileData?.firstname}{" "}
                 {user?.lastName || profileData?.lastname}
               </CardTitle>
+              {/* Display username if available */}
+              {(user?.username || profileData?.username) && (
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  @{user?.username || profileData?.username}
+                </p>
+              )}
               {user?.primaryEmailAddress && (
-                <CardDescription className="text-base">
+                <CardDescription className="text-base mt-1"> {/* Adjusted margin for spacing */}
                   {user.primaryEmailAddress.emailAddress}
                 </CardDescription>
               )}
@@ -363,7 +361,7 @@ const Profile = () => {
               )}
             </div>
             <CardDescription>
-              Manage your first and last name (stored in our system).
+              Manage your first name, last name, and username (stored in our system).
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -376,7 +374,7 @@ const Profile = () => {
                   type="text"
                   placeholder="Enter your first name"
                   errors={errors}
-                  defaultValue={profileData?.firstname || user?.firstName || ""} // Ensure default value is set
+                  defaultValue={profileData?.firstname || user?.firstName || ""}
                 />
                 <FormInputs
                   label="Last Name"
@@ -385,7 +383,16 @@ const Profile = () => {
                   type="text"
                   placeholder="Enter your last name"
                   errors={errors}
-                  defaultValue={profileData?.lastname || user?.lastName || ""} // Ensure default value is set
+                  defaultValue={profileData?.lastname || user?.lastName || ""}
+                />
+                <FormInputs
+                  label="Username"
+                  register={register}
+                  name="username"
+                  type="text"
+                  placeholder="Enter your username"
+                  errors={errors}
+                  defaultValue={profileData?.username || user?.username || ""}
                 />
                 <div className="flex flex-col sm:flex-row gap-3 pt-2">
                   <Button
@@ -418,6 +425,11 @@ const Profile = () => {
                   <span className="font-medium text-primary">Last Name:</span>
                   {/* Prefer showing Clerk data if available, fallback to profileData */}
                   <span>{user?.lastName || profileData?.lastname || "Not set"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium text-primary">Username:</span>
+                  {/* Prefer showing Clerk data if available, fallback to profileData */}
+                  <span>{user?.username || profileData?.username || "Not set"}</span>
                 </div>
                 {/* Show a message if profile doesn't exist but Clerk has data */}
                 {!profileExists && (user?.firstName || user?.lastName) && !isLoadingProfile && (
@@ -466,27 +478,6 @@ const Profile = () => {
                 {isLoadingCounts && <Skeleton className="absolute -top-2 -right-2 h-5 w-5 rounded-full transform translate-x-1/2 -translate-y-1/2" />}
               </Link>
             </Button>
-          </CardContent>
-        </Card>
-
-        {/* --- Account Security Section --- */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-xl">Account Security</CardTitle>
-            <CardDescription>
-              Manage profile picture, password, multi-factor authentication, and connected accounts via your central user settings.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button variant="outline" asChild>
-              <Link to="/user/account-security">
-                <UserCog className="mr-2 h-4 w-4" />
-                Manage Account Security
-              </Link>
-            </Button>
-            <p className="text-xs text-muted-foreground mt-2">
-              This will take you to the account management page where you can update your profile picture and security settings.
-            </p>
           </CardContent>
         </Card>
           </section>
