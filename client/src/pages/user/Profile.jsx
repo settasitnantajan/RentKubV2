@@ -19,6 +19,7 @@ import { ProfileSchema } from "@/utils/schemas";
 import { createProfile, getProfile, updateProfile } from "@/api/profile";
 import { listBookings } from "@/api/booking";
 import { listFavorites } from "@/api/camping";
+import Breadcrums from "@/components/campings/Breadcrums"; // Import the Breadcrums component
 
 import { Button } from "@/components/ui/button";
 import {
@@ -63,6 +64,10 @@ const Profile = () => {
     },
   });
   const { errors, isSubmitting } = formState;
+
+  // --- Render Breadcrumbs early ---
+  // Render breadcrumbs before any loading or access checks
+  const breadcrumbItems = [{ label: "My Profile" }];
 
   // --- Effects ---
 
@@ -225,10 +230,19 @@ const Profile = () => {
 
   // --- Loading / Auth States ---
   // No changes needed here
-  if (!isAuthLoaded || !isUserLoaded || isLoadingProfile) {
-    return (
-      <section className="max-w-3xl mx-auto mt-8 p-4 md:p-6">
-        {/* Skeleton Loader */}
+  // Render breadcrumbs even during loading
+  return (
+    <TooltipProvider>
+      <div className="mb-4 ml-6"> {/* Optional: Add some margin below breadcrumbs */}
+        <Breadcrums items={breadcrumbItems} />
+      </div>
+
+      {/* Conditional rendering for the main content */}
+      {(() => {
+        if (!isAuthLoaded || !isUserLoaded || isLoadingProfile) {
+          return (
+            <section className="max-w-3xl mx-auto mt-8 p-4 md:p-6">
+              {/* Skeleton Loader */}
         <Card>
           <CardHeader className="flex flex-row items-center gap-4 p-6">
             <Skeleton className="h-20 w-20 rounded-full" />
@@ -261,14 +275,14 @@ const Profile = () => {
             </div>
           </CardContent>
         </Card>
-      </section>
-    );
-  }
+            </section>
+          );
+        }
 
-  if (!userId) {
-     return (
-       <div className="text-center mt-10 p-6">
-        {/* Access Denied */}
+        if (!userId) {
+          return (
+            <div className="text-center mt-10 p-6">
+              {/* Access Denied */}
         <Card className="max-w-md mx-auto">
           <CardHeader>
             <CardTitle>Access Denied</CardTitle>
@@ -277,15 +291,13 @@ const Profile = () => {
             </CardDescription>
           </CardHeader>
         </Card>
-      </div>
-    );
-  }
+            </div>
+          );
+        }
 
-  // --- Render Profile Page ---
-  // No changes needed in the JSX structure below
-  return (
-    <TooltipProvider>
-      <section className="max-w-3xl mx-auto mt-8 p-4 md:p-6 space-y-8">
+        // --- Render Profile Page ---
+        return (
+          <section className="max-w-3xl mx-auto mt-8 p-4 md:p-6 space-y-8">
         {/* --- User Header --- */}
         <Card>
           <CardHeader className="flex flex-col sm:flex-row items-center gap-4 p-6">
@@ -433,7 +445,7 @@ const Profile = () => {
                 <CalendarDays className="mr-2 h-4 w-4" />
                 My Bookings
                 {!isLoadingCounts && bookingCount > 0 && (
-                  <span className="absolute -top-2 -right-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 bg-red-600 rounded-full transform translate-x-1/2 -translate-y-1/2">
+                  <span className="absolute -top-0 -right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 bg-red-600 rounded-full transform translate-x-1/2 -translate-y-1/2">
                     {bookingCount}
                   </span>
                 )}
@@ -447,7 +459,7 @@ const Profile = () => {
                 <Heart className="mr-2 h-4 w-4" />
                 My Favorites
                 {!isLoadingCounts && favoriteCount > 0 && (
-                  <span className="absolute -top-2 -right-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 bg-red-600 rounded-full transform translate-x-1/2 -translate-y-1/2">
+                  <span className="absolute -top-0 -right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 bg-red-600 rounded-full transform translate-x-1/2 -translate-y-1/2">
                     {favoriteCount}
                   </span>
                 )}
@@ -477,8 +489,9 @@ const Profile = () => {
             </p>
           </CardContent>
         </Card>
-
-      </section>
+          </section>
+        );
+      })()}
     </TooltipProvider>
   );
 };

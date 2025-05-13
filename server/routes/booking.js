@@ -11,6 +11,7 @@ const {
   updateBookingStatusByHost, // Import the new status update function
   deleteBookingByUser, // Import the new delete function
   cancelBookingByUser, // Import the new cancel function
+  retryPayment,
 } = require("../controllers/booking");
 const { authCheck } = require("../middlewares/auth");
 
@@ -28,6 +29,9 @@ router.get("/booking/by-camping/:campingId", authCheck, getBookingsByCampingId);
 
 // api/checkout
 router.post("/checkout", authCheck, checkout);
+
+// api/retry-payment
+router.post("/retry-payment", authCheck, retryPayment);
 
 // api/checkout-status/:session_id
 router.get("/checkout-status/:session_id", authCheck, checkOutStatus);

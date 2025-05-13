@@ -1,7 +1,7 @@
 import {
   listBookings,
-  deleteBooking as apiDeleteBooking,
   cancelBooking as apiCancelBooking,
+  retryPayment as apiRetryPayment, // Import the new retryPayment function
 } from "@/api/booking"; // Import cancelBooking
 import { useAuth } from "@clerk/clerk-react";
 import { submitReview as apiSubmitReview } from "@/api/review"; // Import submitReview API
@@ -19,8 +19,13 @@ import { formatDate, formatNumber } from "@/utils/formats";
 import BookingPDF from "@/components/booking/BookingPDF";
 import { Button } from "@/components/ui/button"; // Import Button
 import useCampingStore from "@/store/camping-store"; // Import the camping store
+import { Loader2 } from "lucide-react"; // Import Loader2 for spinner
 import ReviewModal from "@/components/review/ReviewModal"; // Import ReviewModal
+
 import { toast } from "sonner"; // For notifications
+import ConfirmationModal from "./ConfirmationModal";
+import LoadingSpinner from "../LoadingSpinner";
+import Breadcrums from "@/components/campings/Breadcrums"; // Import the Breadcrums component
 
 const FILTER_OPTIONS = {
   TOTAL: "Total Bookings",
@@ -32,14 +37,19 @@ const FILTER_OPTIONS = {
 
 const MyOrders = () => {
   const [bookings, setBookings] = useState([]);
+  const [isLoadingPage, setIsLoadingPage] = useState(true); // New state for initial page load
   const [activeFilter, setActiveFilter] = useState(FILTER_OPTIONS.TOTAL);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [payingBookingId, setPayingBookingId] = useState(null); // State to track paying booking
+  const [isCancelConfirmModalOpen, setIsCancelConfirmModalOpen] = useState(false);
+  const [bookingToCancelId, setBookingToCancelId] = useState(null);
   const [currentReviewData, setCurrentReviewData] = useState(null); // { bookingId, landmarkId, landmarkName }
   const { getToken } = useAuth();
   const navigate = useNavigate(); // Initialize useNavigate
   const { actionReadCamping } = useCampingStore(); // Get action from camping store
 
   const fetchBookings = useCallback(async () => {
+    setIsLoadingPage(true); // Start loading
     const token = await getToken();
     if (!token) {
       console.log("No token available for fetching bookings.");
@@ -53,6 +63,8 @@ const MyOrders = () => {
     } catch (error) {
       console.log("Error fetching bookings:", error);
       setBookings([]); // Clear bookings on error
+    } finally {
+      setIsLoadingPage(false); // Stop loading regardless of outcome
     }
   }, [getToken]); // getToken is a dependency of fetchBookings
 
@@ -122,7 +134,7 @@ const MyOrders = () => {
 
     if (cancelledByUserStatus) {
       return {
-        text: "Cancelled by User",
+        text: "Cancelled",
         styleClasses: "bg-red-100 text-red-700 border border-red-300",
       };
     }
@@ -184,30 +196,63 @@ const MyOrders = () => {
   };
 
   // Placeholder action handlers
-  const handlePayment = (bookingId) => {
+  const handlePayment = async (bookingId) => {
     console.log(`Initiate payment for booking ID: ${bookingId}`);
-    // TODO: Navigate to payment page or trigger payment modal
-    alert(`Payment action for booking ID: ${bookingId}`);
-  };
+    setPayingBookingId(bookingId); // Set loading state for this booking
+    const token = await getToken();
+    if (!token) {
+      toast.error("Authentication token not found. Please log in again.");
+      setPayingBookingId(null); // Clear loading state
+      return;
+    }
 
-  const handleCancelBooking = async (bookingId) => {
-    console.log(`Cancel booking ID: ${bookingId}`);
-    if (window.confirm("Are you sure you want to cancel this booking?")) {
-      try {
-        const token = await getToken();
-        await apiCancelBooking(token, bookingId); // Call the new API function
-        toast.success("Booking cancelled successfully!");
-        fetchBookings(); // Refetch bookings to update the list
-      } catch (error) {
-        console.error("Error cancelling booking:", error);
-        const errorMessage =
-          error.response?.data?.message ||
-          "Failed to cancel booking. Please try again.";
-        toast.error(errorMessage);
+    try {
+      const response = await apiRetryPayment(token, bookingId);
+      if (response.data && response.data.url) {
+        window.location.href = response.data.url; // Redirect to Stripe
+        // No need to clear payingBookingId here as page will redirect
+      } else {
+        console.error("Stripe session URL not found in response:", response);
+        toast.error("Could not initiate payment. Please try again later.");
+        setPayingBookingId(null); // Clear loading state
       }
+    } catch (error) {
+      console.error("Error initiating payment:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to initiate payment. Please try again.";
+      toast.error(errorMessage);
+      setPayingBookingId(null); // Clear loading state
     }
   };
 
+  const openCancelConfirmationModal = (bookingId) => {
+    setBookingToCancelId(bookingId);
+    setIsCancelConfirmModalOpen(true);
+  };
+
+  const closeCancelConfirmationModal = () => {
+    setBookingToCancelId(null);
+    setIsCancelConfirmModalOpen(false);
+  };
+
+  const executeCancelBooking = async () => {
+    if (!bookingToCancelId) return;
+    console.log(`Confirm cancel booking ID: ${bookingToCancelId}`);
+    try {
+      const token = await getToken();
+      await apiCancelBooking(token, bookingToCancelId);
+      toast.success("Booking cancelled successfully!");
+      fetchBookings(); // Refetch bookings to update the list
+    } catch (error) {
+      console.error("Error cancelling booking:", error);
+      const errorMessage =
+        error.response?.data?.message ||
+        "Failed to cancel booking. Please try again.";
+      toast.error(errorMessage);
+    } finally {
+      closeCancelConfirmationModal();
+    }
+  };
   const handleOpenReviewModal = (landmarkId, bookingId, landmarkName) => {
     console.log(
       `Opening review modal for landmark ID: ${landmarkId}, booking ID: ${bookingId}, name: ${landmarkName}`
@@ -232,28 +277,6 @@ const MyOrders = () => {
       // Error is already logged by apiSubmitReview, toast it here for user
       toast.error(error.message || "Failed to submit review. Please try again.");
       throw error; // Re-throw to let the modal handle its own error display if needed
-    }
-  };
-
-  const handleDeleteBooking = async (bookingId) => {
-    console.log(`Delete booking ID: ${bookingId}`);
-    if (
-      window.confirm(
-        "Are you sure you want to delete this booking? This action cannot be undone."
-      )
-    ) {
-      try {
-        const token = await getToken();
-        await apiDeleteBooking(token, bookingId); // Use the aliased import
-        toast.success("Booking deleted successfully!");
-        fetchBookings(); // Refetch bookings to update the list
-      } catch (error) {
-        console.error("Error deleting booking:", error);
-        const errorMessage =
-          error.response?.data?.message ||
-          "Failed to delete booking. Please try again.";
-        toast.error(errorMessage);
-      }
     }
   };
 
@@ -305,17 +328,42 @@ const MyOrders = () => {
       awaitingReviewCount++;
     }
   });
+
+  // Render breadcrumbs even during loading
+  const breadcrumbItems = [
+    { label: "Profile", href: "/user/profile" },
+    { label: "My Booking" }, // Last item, no href needed
+  ];
+
+  if (isLoadingPage) {
+    return ( // Added return statement here
+      <div className="container mx-auto py-8 px-4 md:px-6">
+        {/* Add Breadcrumbs here */}
+        <div className="mb-6"> {/* Optional: Add some margin below breadcrumbs */}
+          <Breadcrums items={breadcrumbItems} />
+        </div>
+        <h1 className="text-2xl font-semibold mb-6">My Booking</h1>
+
+        {/* Show spinner while loading */}
+        <LoadingSpinner customText="Loading your orders..." />
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto py-8 px-4 md:px-6">
-      <h1 className="text-2xl font-semibold mb-6">My Orders</h1>
-
+      {/* Breadcrumbs for the main content (when not loading) */}
+      <div className="mb-6">
+        <Breadcrums items={breadcrumbItems} />
+      </div>
+      <h1 className="text-2xl font-semibold mb-6">My Booking</h1>
       <div className="mb-6 flex space-x-2 flex-wrap">
         {Object.values(FILTER_OPTIONS).map((option) => (
           <Button
             key={option}
             variant={activeFilter === option ? "default" : "outline"}
             onClick={() => setActiveFilter(option)}
-            className="mb-2 cursor-pointer relative" // Added relative positioning
+            className="mb-2 cursor-pointer relative transition-transform duration-300 ease-in-out hover:scale-102"
           >
             {option}
             {option === FILTER_OPTIONS.WAITING_PAYMENT && waitingPaymentCount > 0 && (
@@ -372,17 +420,22 @@ const MyOrders = () => {
               >
                 <div className="md:flex">
                   {" "}
-                  {/* Use md:flex for responsive layout */}
-                  <div className="md:flex-shrink-0 overflow-hidden rounded-t-md md:rounded-l-md md:rounded-t-none">
+                  {/* Clickable Image Area */}
+                  <div
+                    className="md:flex-shrink-0 overflow-hidden rounded-t-md md:rounded-l-md md:rounded-t-none cursor-pointer"
+                    onClick={() => handleBookAgain(landmark?.id)} // Re-use handleBookAgain or create a specific navigation function
+                    role="button" // For accessibility
+                    tabIndex={0} // For accessibility
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleBookAgain(landmark?.id); }} // For accessibility
+                  >
                     <img
-                      className="h-48 w-full m-6 md:w-48 object-cover rounded-2xl" // Fixed height, full width on small, fixed width on md+
+                      className="h-48 w-full m-6 md:w-48 object-cover rounded-2xl transition-transform duration-300 ease-in-out hover:scale-102" // Added transform classes
                       src={propertyImage}
                       alt={`Image of ${propertyName}`}
                     />
                   </div>
-                  {/* Simplified to a single flex container */}
                   <div className="p-3 flex-grow">
-                    <CardHeader className="p-0 mb-3">
+                    <CardHeader className="p-0 mb-3 mr-4">
                       <span
                         className={`inline-block w-fit px-3 py-1 text-xs font-semibold rounded-full mb-2 ${displayStatus.styleClasses}`}
                       >
@@ -393,12 +446,13 @@ const MyOrders = () => {
                           {propertyName}
                         </CardTitle>
                         <div className="text-lg font-semibold text-gray-700">
-                          Total: {formatNumber(total)}฿
+                          ฿ {formatNumber(total)}
                         </div>
                       </div>
-                      <p className="text-sm text-gray-500">Booking ID: {id}</p>
+                      <p className="text-sm text-gray-500">Booking ID : {id}</p>
+                      <p className="text-xs text-gray-400 mt-1">Booked : {formatDate(createdAt)}</p>
                     </CardHeader>
-                    <CardContent className="p-3 mt-2 space-y-2 text-sm bg-gray-100 rounded-2xl">
+                    <CardContent className="p-3 mt-2 space-y-2 text-xs bg-gray-100 rounded-2xl">
                       {" "}
                       {/* Added mt-2 for spacing */}
                       <div className="grid grid-cols-2 gap-x-4 gap-y-1">
@@ -443,18 +497,25 @@ const MyOrders = () => {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleCancelBooking(id)}
-                              className="cursor-pointer text-red-600 hover:bg-red-50 border"
+                              onClick={() => openCancelConfirmationModal(id)}
+                              className="cursor-pointer text-red-600 hover:bg-red-50 border transition-transform duration-300 ease-in-out hover:scale-102"
                             >
                               Cancel Booking
                             </Button>
                             <Button
+                              disabled={payingBookingId === id}
                               onClick={() => handlePayment(id)}
-                              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 text-sm shadow-md hover:shadow-lg transition-shadow cursor-pointer"
+                              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 text-sm shadow-md hover:shadow-lg transition-shadow cursor-pointer transition-transform duration-300 ease-in-out hover:scale-102"
                             >
-                              Pay Now
+                              {payingBookingId === id ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Processing...
+                                </>
+                              ) : (
+                                "Pay Now"
+                              )}
                             </Button>
-
                             {/* Invoice button is also removed when paymentStatus is false */}
                           </>
                         )}
@@ -469,32 +530,24 @@ const MyOrders = () => {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleOpenReviewModal(landmark?.id, id, propertyName)}
-                                className="cursor-pointer"
+                                className="cursor-pointer transition-transform duration-300 ease-in-out hover:scale-102"
                               >
                                 Review
                               </Button>
                             )}
                             <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleDeleteBooking(id)}
-                              className="cursor-pointer"
-                            >
-                              Delete
-                            </Button>
-                            <Button
                               variant="default"
                               size="sm"
                               onClick={() => handleBookAgain(landmark?.id)}
-                              className="cursor-pointer"
+                              className="cursor-pointer transition-transform duration-300 ease-in-out hover:scale-102"
                             >
                               Book Again
                             </Button>
                             <BookingPDF
                               booking={item}
                               variant="outline"
-                              size="sm"
-                              className="cursor-pointer"
+                              size="sm"                              
+                              className="cursor-pointer transition-transform duration-300 ease-in-out hover:scale-102"
                             />
                           </>
                         )}
@@ -509,8 +562,8 @@ const MyOrders = () => {
                               <Button
                                 variant="ghost" // Or "outline" with a specific color
                                 size="sm"
-                                onClick={() => handleCancelBooking(id)}
-                                className="cursor-pointer text-red-600 hover:bg-red-50 border"
+                                onClick={() => openCancelConfirmationModal(id)}
+                                className="cursor-pointer text-red-600 hover:bg-red-50 border transition-transform duration-300 ease-in-out hover:scale-102"
                               >
                                 Cancel Booking
                               </Button>
@@ -519,7 +572,7 @@ const MyOrders = () => {
                               booking={item}
                               variant="outline"
                               size="sm"
-                              className="cursor-pointer"
+                              className="cursor-pointer transition-transform duration-300 ease-in-out hover:scale-102"
                             />
                           </>
                         )}
@@ -532,7 +585,7 @@ const MyOrders = () => {
                             variant="default"
                             size="sm"
                             onClick={() => handleBookAgain(landmark?.id)}
-                            className="cursor-pointer"
+                            className="cursor-pointer transition-transform duration-300 ease-in-out hover:scale-102"
                           >
                             Book Again
                           </Button>
@@ -567,6 +620,15 @@ const MyOrders = () => {
           landmarkId={currentReviewData.landmarkId}
         />
       )}
+      <ConfirmationModal
+        isOpen={isCancelConfirmModalOpen}
+        onClose={closeCancelConfirmationModal}
+        onConfirm={executeCancelBooking}
+        title="Confirm Booking Cancellation"
+        description="Are you sure you want to cancel this booking? This action may not be reversible depending on the booking policy."
+        confirmButtonText="Yes, Cancel Booking"
+        confirmButtonVariant="destructive"
+      />
     </div>
   );
 };

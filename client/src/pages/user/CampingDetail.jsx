@@ -22,6 +22,7 @@ import PhotoGalleryModal from "@/components/campings/PhotoGalleryModal";
 import ReviewList from "@/components/review/ReviewList" // Import ReviewList
 import RatingBreakdownCard from "@/components/review/RatingBreakdownCard"; // Import the new component
 import {
+  // Dialog components are already imported
   Dialog,
   DialogContent,
   DialogHeader,
@@ -29,6 +30,7 @@ import {
   DialogDescription,
   DialogFooter, // Optional: if you need a footer
 } from "@/components/ui/dialog";
+import LoadingSpinner from "@/pages/LoadingSpinner"; // Import LoadingSpinner
 // Potentially add an AmenitiesModal component if you prefer that approach
 // import AmenitiesModal from "@/components/campings/AmenitiesModal";
 
@@ -110,7 +112,7 @@ const formatAmenityLabel = (amenityId) => {
   return amenityId
     .replace(/_/g, " ") // Replace all underscores with spaces
     .split(" ") // Split into words
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1)) // Capitalize first letter of each word
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Capitalize first letter, lowercase rest
     .join(" "); // Join back with spaces
 };
 // --- ---
@@ -124,11 +126,12 @@ function CampingDetail() {
   const [galleryStartIndex, setGalleryStartIndex] = useState(null);
   const [showAllAmenities, setShowAllAmenities] = useState(false);
   const [derivedLocationName, setDerivedLocationName] = useState(null); // State for fetched location name
+  const [minLoadTimePassed, setMinLoadTimePassed] = useState(false); // State for 1-second minimum load time
   const [isDescriptionModalOpen, setIsDescriptionModalOpen] = useState(false);
 
   // --- Zustand Store ---
   const camping = useCampingStore((state) => state.currentCampingDetail);
-  const isLoading = useCampingStore((state) => state.isLoadingDetail);
+  const storeIsLoading = useCampingStore((state) => state.isLoadingDetail); // Renamed for clarity
   const actionReadCamping = useCampingStore((state) => state.actionReadCamping);
   const clearCurrentCampingDetail = useCampingStore(
     (state) => state.clearCurrentCampingDetail
@@ -136,9 +139,18 @@ function CampingDetail() {
 
   // --- Data Fetching ---
   useEffect(() => {
+    let timerId; // To store the timeout ID
+
     const fetchDetails = async () => {
       if (id) {
         console.log(`Fetching details for camping ID: ${id}`);
+        // Reset minLoadTimePassed for the new fetch and start timer
+        setMinLoadTimePassed(false);
+        timerId = setTimeout(() => {
+          setMinLoadTimePassed(true);
+          console.log("Minimum 0.5-second load time passed.");
+        }, 500); // Changed from 1000ms to 500ms
+
         let token = null;
         if (isSignedIn) { // Check if user is signed in
           token = await getToken(); // Get the authentication token
@@ -149,7 +161,8 @@ function CampingDetail() {
     fetchDetails();
 
     return () => {
-      console.log("Clearing current camping detail.");
+      console.log("Cleaning up CampingDetail: Clearing current detail and timer.");
+      clearTimeout(timerId); // Clear the timer on unmount or before re-run
       clearCurrentCampingDetail();
       setDerivedLocationName(null); // Reset derived location name on unmount
       setShowAllAmenities(false);
@@ -412,12 +425,18 @@ function CampingDetail() {
 
   // --- Render Logic ---
 
-  if (isLoading) {
-    // ... (keep existing loading state)
+  // Render breadcrumbs early, using a placeholder name if data isn't ready
+  const breadcrumbItems = [{ label: preparedData?.title || "Loading Details..." }];
+
+  // Show spinner if data is loading OR minimum 1-second display time hasn't passed
+  if (storeIsLoading || !minLoadTimePassed) {
     return (
-      <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
-        <Loader2 className="h-16 w-16 animate-spin text-rose-500" />
-        <span className="sr-only">Loading camping details...</span>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Breadcrumbs for loading state */}
+        <div className="mb-2 text-sm">
+          <Breadcrums items={breadcrumbItems} />
+        </div>
+        <LoadingSpinner customText="Loading camping details..." />
       </div>
     );
   }
@@ -467,9 +486,9 @@ function CampingDetail() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      {/* --- Breadcrumbs --- */}
+      {/* Breadcrumbs for loaded state */}
       <div className="mb-2 text-sm">
-        <Breadcrums name={title} />
+        <Breadcrums items={breadcrumbItems} />
       </div>
 
       {/* --- Header Section --- */}

@@ -27,7 +27,12 @@ exports.getHostLandmarks = async (req, res, next) => {
             // text: true,
           }
         },
-        _count: { select: { reviews: true } } // Optionally get total review count
+        _count: {
+          select: {
+            reviews: true,   // Keep existing review count
+            favorites: true  // Add favorite count
+          }
+        }
       }
     });
     res.status(200).json(landmarks);

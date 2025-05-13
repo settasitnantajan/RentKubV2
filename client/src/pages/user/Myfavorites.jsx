@@ -3,6 +3,7 @@ import useCampingStore from "@/store/camping-store";
 import { useAuth } from "@clerk/clerk-react";
 import { useEffect } from "react";
 import { Link } from "react-router"; // Import Link for navigation
+import Breadcrums from "@/components/campings/Breadcrums"; // Import Breadcrums
 import { HeartCrack, Home } from "lucide-react"; // Import an icon for the empty state
 import { Button } from "@/components/ui/button"; // Import Button for a nice CTA
 
@@ -25,8 +26,13 @@ const Myfavorites = () => {
 
   return (
     <div className="container mx-auto py-8 px-4 md:px-6">
+      {/* Add Breadcrumbs here */}
+      <div className="mb-6"> {/* Optional: Add some margin below breadcrumbs */}
+        <Breadcrums items={[{ label: "My Favorites" }]} />
+      </div>
+
       <h1 className="text-3xl font-bold tracking-tight mb-8 text-gray-800">
-        My Favorite Campings
+        My Favorite
       </h1>
 
       {favorites.length === 0 ? (

@@ -85,8 +85,11 @@ const CampingContainer = () => {
       <div className="sticky top-0 z-30 bg-white py-3 mb-4 border-b border-gray-200">
         {" "}
         {/* Removed responsive top offsets */}
-        <div className="container mx-auto flex flex-col sm:flex-row justify-center items-center gap-4">
-          <CategoryList />
+        <div className="container mx-auto flex flex-col sm:flex-row justify-center items-center gap-x-4 gap-y-2"> {/* Adjusted gap for potentially tighter layout */}
+          {/* Wrap CategoryList to control its width - Reduced width */}
+          <div className="w-full sm:max-w-sm md:max-w-sm lg:max-w-lg mr-4"> {/* Adjust max-width as needed */}
+            <CategoryList />
+          </div>
           <SearchBar />
           <FilterModal />
         </div>
@@ -111,7 +114,7 @@ const CampingContainer = () => {
           {/* Changed lg:flex to md:flex */}
           <Button
             onClick={() => setIsMapVisible(!isMapVisible)}
-            className="rounded-full shadow-lg px-4 py-2 flex items-center gap-2"
+            className="rounded-full shadow-lg px-4 py-2 flex items-center gap-2 cursor-pointer"
             variant="default" // Or choose another variant
           >
             {isMapVisible ? (

@@ -33,6 +33,101 @@ exports.listBookings = async (req, res, next) => {
   }
 };
 
+exports.retryPayment = async (req, res, next) => {
+  try {
+    const { id: bookingIdFromBody } = req.body; // bookingId sent from frontend as 'id'
+    const userId = req.user.id; // Assuming your authCheck middleware adds user to req (Clerk ID)
+
+    if (!bookingIdFromBody) {
+      return renderError(res, 400, "Booking ID is required.");
+    }
+
+    const bookingId = Number(bookingIdFromBody);
+    if (isNaN(bookingId) || bookingId <= 0) {
+      return renderError(res, 400, "Invalid Booking ID format.");
+    }
+
+    // 1. Fetch the booking from the database
+    // Ensure the booking belongs to the authenticated user
+    const booking = await prisma.booking.findFirst({
+      where: {
+        id: bookingId,
+        profileId: userId, // Ensure booking belongs to the user
+      },
+      include: {
+        landmark: {
+          select: {
+            id: true,
+            title: true,
+            images: true,
+          },
+        },
+      },
+    });
+
+    if (!booking) {
+      return renderError(res, 404, "Booking not found or access denied.");
+    }
+
+    // 2. Check if the booking is eligible for payment retry
+    if (booking.paymentStatus) {
+      return renderError(res, 400, "This booking has already been paid.");
+    }
+    if (booking.cancelledByUserStatus) {
+      // Assuming you have cancelledByHostStatus as well, you might want to check it
+      return renderError(
+        res,
+        400,
+        "This booking has been cancelled and cannot be paid."
+      );
+    }
+    // Add any other conditions that make a booking ineligible for retry
+
+    // 3. Create a new Stripe Checkout session (redirect mode)
+    const { total, landmark } = booking;
+    const { title: landmarkTitle, images: landmarkImages } = landmark;
+    const primaryImageUrl =
+      landmarkImages && landmarkImages.length > 0 ? landmarkImages[0] : null;
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      line_items: [
+        {
+          price_data: {
+            currency: "thb", // Or your booking's currency
+            product_data: {
+              name: `Retry Payment for: ${landmarkTitle}`,
+              description: `Booking ID: ${booking.id}. Check-in: ${new Date(
+                booking.checkIn
+              ).toLocaleDateString()}, Check-out: ${new Date(
+                booking.checkOut
+              ).toLocaleDateString()}`,
+              images: primaryImageUrl ? [primaryImageUrl] : [],
+            },
+            unit_amount: Math.round(total * 100), // Stripe expects amount in cents
+          },
+          quantity: 1,
+        },
+      ],
+      mode: "payment",
+      success_url: `${process.env.CLIENT_URL || "http://localhost:5173"}/user/complete/{CHECKOUT_SESSION_ID}?retry=true&booking_id=${booking.id}`,
+      cancel_url: `${process.env.CLIENT_URL || "http://localhost:5173"}/user/myorders?payment_cancelled=true&booking_id=${booking.id}`,
+      client_reference_id: booking.id.toString(),
+      metadata: {
+        bookingId: booking.id.toString(),
+        userId: userId,
+        isRetry: "true",
+      },
+    });
+
+    // 4. Return the session URL to the client for redirection
+    res.json({ url: session.url, sessionId: session.id });
+  } catch (error) {
+    console.error("Error retrying payment:", error);
+    next(error); // Pass to global error handler
+  }
+};
+
 exports.updateBookingStatusByHost = async (req, res, next) => {
   try {
     const { bookingId } = req.params;

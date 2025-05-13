@@ -360,7 +360,11 @@ const BookingCaendar = ({
             ) : (
               // Logged-in user, but no range selected or data not ready
               <p>
-                {totalRooms > 0 ? `Total units at this site: ${totalRooms}` : "Site configuration pending."}
+                {totalRooms <= 0
+                  ? <span className="text-red-500 font-semibold">This property is in high demand!</span>
+                  : totalRooms < 5
+                  ? <span className="text-red-500 font-semibold">{`Only ${totalRooms} available!`}</span>
+                  : "Select dates to check availability."}
               </p>
             )}
             {userHasOverlappingBooking && (

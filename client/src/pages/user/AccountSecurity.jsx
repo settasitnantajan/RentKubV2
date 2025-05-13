@@ -1,5 +1,6 @@
 // /Users/duke/Documents/GitHub/RentKub/client/src/pages/user/AccountSecurity.jsx
 import { UserProfile } from "@clerk/clerk-react";
+import Breadcrums from "@/components/campings/Breadcrums"; // Import Breadcrums
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 // Define custom appearance object to match Shadcn styles
@@ -54,28 +55,43 @@ const clerkAppearance = {
 
 
 const AccountSecurity = () => {
+  // Define breadcrumb items
+  // This will render as: Home > Profile > Account Management
+  const breadcrumbItems = [
+    { label: "Profile", href: "/user/profile" }, // Link to the main profile page
+    { label: "Account Management" }, // Current page
+  ];
+
   return (
-    // Use a container that centers and sets max-width, responsive padding
-    <section className="flex justify-center container mx-auto max-w-5xl mt-8 mb-8 px-4 sm:px-6 lg:px-8">
-       {/* Use Shadcn Card as the main wrapper */}
-       <Card className="w-fit"> {/* overflow-hidden helps if Clerk content tries to break out */}
-         <CardHeader className="border-b border-border"> {/* Add border for visual separation */}
-           <CardTitle className="text-2xl sm:text-3xl">Account Management</CardTitle>
-           <CardDescription className="text-base">
-             Manage your profile details, security settings (password, MFA), and connected accounts.
-           </CardDescription>
-         </CardHeader>
-         {/* Apply padding within CardContent for the UserProfile component */}
-         <CardContent className="p-4 sm:p-6 lg:p-8">
-           {/* Pass the appearance object and routing props */}
-           <UserProfile
-             path="/user/account-security"
-             routing="path"
-             appearance={clerkAppearance} // Apply our custom styles
-           />
-         </CardContent>
-       </Card>
-    </section>
+    // Main container for the page
+    <div className="container mx-auto max-w-5xl py-8 px-4 sm:px-6 lg:px-8">
+      {/* Add Breadcrumbs here */}
+      <div className="mb-6"> {/* Optional: Add some margin below breadcrumbs */}
+        <Breadcrums items={breadcrumbItems} />
+      </div>
+
+      {/* Use a container that centers and sets max-width, responsive padding */}
+      <section className="flex justify-center">
+        {/* Use Shadcn Card as the main wrapper */}
+        <Card className="w-full"> {/* Changed w-fit to w-full for better responsiveness within the centered section */}
+          <CardHeader className="border-b border-border"> {/* Add border for visual separation */}
+            <CardTitle className="text-2xl sm:text-3xl">Account Management</CardTitle>
+            <CardDescription className="text-base">
+              Manage your profile details, security settings (password, MFA), and connected accounts.
+            </CardDescription>
+          </CardHeader>
+          {/* Apply padding within CardContent for the UserProfile component */}
+          <CardContent className="p-4 sm:p-6 lg:p-8">
+            {/* Pass the appearance object and routing props */}
+            <UserProfile
+              path="/user/account-security"
+              routing="path"
+              appearance={clerkAppearance} // Apply our custom styles
+            />
+          </CardContent>
+        </Card>
+      </section>
+    </div>
   );
 };
 

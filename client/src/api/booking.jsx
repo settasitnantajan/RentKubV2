@@ -52,6 +52,19 @@ export const checkOutStatus = async (token, session) => {
   );
 };
 
+// New function to retry payment for an existing booking
+export const retryPayment = async (token, bookingId) => {
+  return await axios.post(
+    "http://localhost:3000/api/retry-payment", // New backend endpoint
+    { id: bookingId }, // Send bookingId, using 'id' key for consistency with checkout
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+};
+
 // New function to update booking status by host
 export const updateBookingStatus = async (token, bookingId, statusUpdate) => {
   // statusUpdate should be an object like { confirmStatus: true } or { checkInStatus: true }

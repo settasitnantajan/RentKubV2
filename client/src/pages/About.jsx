@@ -1,10 +1,15 @@
 import { useUser } from "@clerk/clerk-react";
 import logo from '../assets/logo.png';
+import Breadcrums from "../components/campings/Breadcrums"; // Import the Breadcrums component
 
 const About = () => {
   const { isSignedIn } = useUser();
   return (
     <div className="bg-gray-50 min-h-screen">
+      {/* Add Breadcrumbs here */}
+      <div className="container mx-auto px-6 py-3"> {/* Container for breadcrumbs with top padding */}
+        <Breadcrums items={[{ label: "About" }]} />
+      </div>
       <header className="bg-gray-400 text-white shadow-lg">
         <div className="container mx-auto px-6 py-10 text-center"> {/* Adjusted padding for logo */}
           <img

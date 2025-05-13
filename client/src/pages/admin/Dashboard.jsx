@@ -16,6 +16,7 @@ import AdminUsersList from "@/components/admin/AdminUsersList";
 import AdminCampingsList from "@/components/admin/AdminCampingsList";
 import AdminBookingsList from "@/components/admin/AdminBookingsList"; // <-- Import the new component
 import AdminOverviewChart from "@/components/admin/AdminOverviewChart"; // <-- Import the overview chart
+import Breadcrums from "@/components/campings/Breadcrums"; // <-- Import Breadcrums
 
 // --- Remove Placeholder Components ---
 // const AdminUsersList = () => <div className="p-4 border rounded bg-muted/40">User list details will appear here...</div>;
@@ -60,6 +61,10 @@ const Dashboard = () => {
 
   return (
     <div className="p-4 md:p-6 space-y-6">
+      {/* Breadcrumbs */}
+      <div className="mb-4"> {/* Optional: Add some margin below breadcrumbs */}
+        <Breadcrums items={[{ label: "Admin Dashboard" }]} />
+      </div>
       {/* Dashboard Header */}
       <div>
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-1">

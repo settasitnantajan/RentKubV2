@@ -182,7 +182,7 @@ const FilterModal = () => {
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         {/* Add relative positioning for the badge */}
-        <Button variant="outline" className="relative flex items-center gap-2">
+        <Button variant="outline" className="relative flex items-center gap-2 cursor-pointer">
           <Filter size={18} />
           <span>Filters</span>
           {/* Badge */}
@@ -272,7 +272,7 @@ const FilterModal = () => {
           {/* Price Range (Using Inputs) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="min-price">Min Price ($)</Label>
+              <Label htmlFor="min-price">Min Price (฿)</Label>
               <Input
                 id="min-price"
                 type="number"
@@ -283,7 +283,7 @@ const FilterModal = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="max-price">Max Price ($)</Label>
+              <Label htmlFor="max-price">Max Price (฿)</Label>
               <Input
                 id="max-price"
                 type="number"
@@ -297,10 +297,10 @@ const FilterModal = () => {
 
           {/* Price Range (Using Slider - Optional Alternative) */}
           {/* <div className="space-y-4">
-            <Label>Price Range ($)</Label>
+            <Label>Price Range (฿)</Label>
             <div className="flex justify-between text-sm text-muted-foreground">
-                <span>${priceRange[0]}</span>
-                <span>${priceRange[1]}{priceRange[1] === 1000 ? '+' : ''}</span>
+                <span>฿{priceRange[0]}</span>
+                <span>฿{priceRange[1]}{priceRange[1] === 1000 ? '+' : ''}</span>
             </div>
             <Slider
               defaultValue={[0, 1000]}

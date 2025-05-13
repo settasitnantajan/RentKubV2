@@ -11,6 +11,7 @@ import AmenitiesInput from "@/components/form/AmenitiesInput";
 import { useAuth } from "@clerk/clerk-react";
 import FormUploadImage from "@/components/form/FormUploadImage"; // Correct component
 import { createAlert } from "@/utils/createAlert";
+import Breadcrums from "@/components/campings/Breadcrums"; // <-- Import Breadcrums
 import { useEffect, useCallback } from "react"; // <-- Add useCallback
 import { CampingSchema } from "@/utils/schemas"; // <-- Ensure this path is correct
 
@@ -139,8 +140,16 @@ const Camping = () => {
     }
   };
 
+  // --- Breadcrumb Items ---
+  const breadcrumbItems = [
+    { label: "Create Camping" }, // Only show the current page
+  ];
+
   return (
-    <section>
+    <section className="p-4 md:p-6 space-y-6"> {/* Added padding and spacing like other admin pages */}
+      <div className="mb-4"> {/* Optional: Add some margin below breadcrumbs */}
+        <Breadcrums items={breadcrumbItems} />
+      </div>
       <h1 className="capitalize text-2xl font-semibold mb-4">Create Camping</h1>
       <div className="border p-8 rounded-md bg-white shadow-sm">
         <form

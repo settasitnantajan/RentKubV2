@@ -7,7 +7,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { AlignLeft } from "lucide-react";
+import { AlignLeft, Home, ChevronRight } from "lucide-react"; // Import Home and ChevronRight
 import { Button } from "../ui/button";
 import UserIcon from "./UserIcon";
 import { privateLinks, publicLinks } from "@/utils/Links";
@@ -26,7 +26,7 @@ import {
 } from "@clerk/clerk-react";
 import SignOutLink from "./SignOutLink";
 import { listBookings } from "@/api/booking"; // <-- Import API to fetch bookings
-import { getHostBookings } from "@/api/host"; // <-- Import API to fetch host bookings
+import { getHostBookings, getHostLandmarks } from "@/api/host"; // <-- Import getHostLandmarks
 
 const DropdownListMenu = () => {
   const { user, isSignedIn } = useUser(); // Get user and isSignedIn status
@@ -34,6 +34,7 @@ const DropdownListMenu = () => {
   const [actionableBookingsCount, setActionableBookingsCount] = useState(0);
   const [hostActionableBookingsCount, setHostActionableBookingsCount] = useState(0);
 
+  const [isHost, setIsHost] = useState(false); // New state to track if user is a host
   // --- Determine if the user is an admin ---
   // Adjust this condition based on how you store admin status in Clerk
   // Examples: user.publicMetadata?.role === 'admin', user.organizationMemberships?.[0]?.role === 'admin', etc.
@@ -134,13 +135,39 @@ const DropdownListMenu = () => {
     fetchAndCountHostBookings();
   }, [fetchAndCountHostBookings]);
 
+  const checkHostStatus = useCallback(async () => {
+    if (!isSignedIn) {
+      setIsHost(false);
+      return;
+    }
+    const token = await getToken();
+    if (!token) {
+      setIsHost(false);
+      return;
+    }
+    try {
+      const res = await getHostLandmarks(token);
+      const landmarks = res.data || [];
+      setIsHost(landmarks.length > 0);
+    } catch (error) {
+      console.error("Error fetching host landmarks for dropdown:", error);
+      setIsHost(false); // Assume not a host on error or if API fails
+    }
+  }, [isSignedIn, getToken]);
+
+  useEffect(() => {
+    if (isSignedIn) { // Only check host status if user is signed in
+      checkHostStatus();
+    }
+  }, [isSignedIn, checkHostStatus]);
+
   // Calculate the total count for the main trigger badge
   const totalActionableCount = actionableBookingsCount + hostActionableBookingsCount;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="relative"> 
+        <Button variant="outline" className="relative cursor-pointer"> 
           <AlignLeft />
           <UserIcon />
           {/* Combined badge for all actionable items on the trigger button */}
@@ -203,7 +230,19 @@ const DropdownListMenu = () => {
             return (
               <DropdownMenuItem key={index} asChild>
                 <Link to={item.href} className="flex items-center justify-between w-full">
-                  <span>{item.label}</span>
+                  {item.href === "/user/host-dashboard" ? (
+                    isHost ? (
+                      <span>{item.label}</span>
+                    ) : (
+                      <span className="text-red-500 font-semibold flex items-center">
+                        <Home className="mr-2 h-4 w-4 text-red-500" /> 
+                        Become a Host!
+                        <ChevronRight className="ml-1 h-4 w-4 animate-pulse" /> 
+                      </span>
+                    )
+                  ) : (
+                    <span>{item.label}</span>
+                  )}
                   {item.href === "/user/myorders" && actionableBookingsCount > 0 && (
                     <span 
                       className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-medium text-white"
@@ -212,7 +251,7 @@ const DropdownListMenu = () => {
                       {actionableBookingsCount > 9 ? '9+' : actionableBookingsCount}
                     </span>
                   )}
-                  {item.href === "/user/host-dashboard" && hostActionableBookingsCount > 0 && (
+                  {item.href === "/user/host-dashboard" && isHost && hostActionableBookingsCount > 0 && (
                     <span
                       className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-medium text-white"
                       aria-label={`${hostActionableBookingsCount} host actions pending`}
