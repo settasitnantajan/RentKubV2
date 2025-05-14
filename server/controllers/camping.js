@@ -52,6 +52,17 @@ exports.listCamping = async (req, res, next) => {
             overallRating: true,
           },
         },
+        // Include host (profile) information
+        profile: {
+          select: {
+            id: true,
+            firstname: true,
+            lastname: true,
+            username: true,
+            email: true, // Optional: include if needed on the listing card
+            imageUrl: true, // Optional: include if needed
+          },
+        },
       },
     });
 
@@ -73,6 +84,7 @@ exports.listCamping = async (req, res, next) => {
         averageRating: parseFloat(averageRating.toFixed(1)), // Format to one decimal place
         reviewCount: reviewCount,
         // Clean up: remove raw reviews and favorites from the final mapped object sent to client
+        // profile: landmark.profile, // This is already included by spreading landmark
         reviews: undefined, // We've used them, now remove
         favorites: undefined, // We've used them, now remove
       };
@@ -111,6 +123,8 @@ exports.readCamping = async (req, res, next) => {
               select: {
                 firstname: true, // Ensure these field names match your Profile model
                 lastname: true,
+                username: true,
+                email: true,
                 imageUrl: true,
                 clerkId: true, // Useful for keys or other identification
               },

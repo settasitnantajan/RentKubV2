@@ -4,6 +4,7 @@ const ReviewList = ({ reviews, maxReviewsToShow = 5 }) => {
   if (!reviews || reviews.length === 0) {
     return <p className="text-gray-600 py-4">Be the first to review this spot!</p>;
   }
+  console.log(reviews,'reviews')
 
   // const [showAll, setShowAll] = useState(false);
   // const displayedReviews = showAll ? reviews : reviews.slice(0, maxReviewsToShow);
@@ -12,7 +13,17 @@ const ReviewList = ({ reviews, maxReviewsToShow = 5 }) => {
   return (
     <div className="space-y-0"> {/* No space-y here, ReviewCard handles its own padding/border */}
       {reviews.map((review) => (
-        <ReviewCard key={review.id} review={review} />
+        <ReviewCard
+          key={review.id}
+          username={review.profile?.username}
+          imageUrl={review.profile?.imageUrl}
+          firstName={review.profile?.firstname} // Corrected: use lowercase 'firstname'
+          lastName={review.profile?.lastname}   // Corrected: use lowercase 'lastname'
+          createdAt={review.createdAt}
+          rating={review.overallRating || review.rating || 0} // Ensure rating is passed
+          text={review.text}
+          // No longer passing the whole review object: review={review}
+        />
       ))}
       {/* {reviews.length > maxReviewsToShow && !showAll && (
         <Button variant="outline" onClick={() => setShowAll(true)} className="mt-4">

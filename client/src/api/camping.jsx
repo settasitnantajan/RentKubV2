@@ -9,8 +9,13 @@ export const createCamping = async (token, data) => {
   });
 };
 
-export const listCamping = async (id) =>
-  await axios.get(`http://localhost:3000/api/campings/${id}`);
+export const listCamping = async (profileId, token) => { // Add token
+  const headers = {};
+  if (token) { // Add Authorization header if token is provided
+    headers.Authorization = `Bearer ${token}`;
+  }
+  return await axios.get(`http://localhost:3000/api/campings/${profileId}`, { headers });
+}
 
 export const readCamping = async (id, token) => { // Add token parameter
   const headers = {};

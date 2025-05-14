@@ -505,7 +505,7 @@ const MyOrders = () => {
                             <Button
                               disabled={payingBookingId === id}
                               onClick={() => handlePayment(id)}
-                              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 text-sm shadow-md hover:shadow-lg transition-shadow cursor-pointer transition-transform duration-300 ease-in-out hover:scale-102"
+                              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 text-sm shadow-md hover:shadow-lg transition-shadow cursor-pointer duration-300 ease-in-out hover:scale-102"
                             >
                               {payingBookingId === id ? (
                                 <>

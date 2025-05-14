@@ -15,11 +15,11 @@ const campingStore = (set, get) => ({
   userLocation: null, // <-- Add state for user's location
   isLoadingDetail: false, // <-- Optional: Add loading state for detail
 
-  actionListCamping: async (id) => {
+  actionListCamping: async (profileId, token) => { // Added token parameter, renamed id for clarity
     // ... (keep existing logic)
     try {
-      const res = await listCamping(id);
-      console.log(res.data.result);
+      const res = await listCamping(profileId, token); // Pass profileId and token to the API call
+      console.log("Host landmarks fetched for profileId", profileId, ":", res.data.result);
       set({ campings: res.data.result, center: res.data.center });
     } catch (error) {
       console.log(error);

@@ -31,6 +31,7 @@ import {
   DialogFooter, // Optional: if you need a footer
 } from "@/components/ui/dialog";
 import LoadingSpinner from "@/pages/LoadingSpinner"; // Import LoadingSpinner
+
 // Potentially add an AmenitiesModal component if you prefer that approach
 // import AmenitiesModal from "@/components/campings/AmenitiesModal";
 
@@ -62,6 +63,7 @@ import {
   // You might need to install a library like `react-icons` for brand icons
   // e.g., import { FaFacebook, FaInstagram, FaTiktok } from 'react-icons/fa';
 } from "lucide-react";
+import HostProfileModal from "./HostProfileModal";
 
 // --- Constants ---
 const MAX_SECONDARY_IMAGES = 4;
@@ -128,9 +130,11 @@ function CampingDetail() {
   const [derivedLocationName, setDerivedLocationName] = useState(null); // State for fetched location name
   const [minLoadTimePassed, setMinLoadTimePassed] = useState(false); // State for 1-second minimum load time
   const [isDescriptionModalOpen, setIsDescriptionModalOpen] = useState(false);
+  const [isHostModalOpen, setIsHostModalOpen] = useState(false); // State for host profile modal
 
   // --- Zustand Store ---
   const camping = useCampingStore((state) => state.currentCampingDetail);
+  console.log(camping,'camping')
   const storeIsLoading = useCampingStore((state) => state.isLoadingDetail); // Renamed for clarity
   const actionReadCamping = useCampingStore((state) => state.actionReadCamping);
   const clearCurrentCampingDetail = useCampingStore(
@@ -270,9 +274,14 @@ function CampingDetail() {
     }
 
     const hostData = camping.profile ?? {}; // Always use the landmark's host data, or an empty object if none.
+    const hostUsername = hostData.username ?? null;
     const hostFirstName = hostData.firstname ?? "Host";
     const hostLastName = hostData.lastname ?? "";
     const hostImageUrl = hostData.imageUrl ?? null;
+    // Assuming 'otherLandmarks' might be part of hostData in the future
+    // For now, it will be an empty array if not present.
+    const hostOtherLandmarks = Array.isArray(hostData.otherLandmarks) ? hostData.otherLandmarks : [];
+
     let hostJoinedDate = "Date unavailable";
     if (hostData.createAt) {
       try {
@@ -308,9 +317,12 @@ function CampingDetail() {
       locationName,
       address, // <-- Include address
       host: {
+        id: hostData.id, // Assuming hostData (from camping.profile) has the host's ID
+        username: hostUsername,
         firstname: hostFirstName,
         lastname: hostLastName, 
-        imageUrl: hostData.imageUrl ?? loggedInUser?.imageUrl ?? null, // Fallback to loggedInUser's image
+        imageUrl: hostData.imageUrl ?? null, // Only use host's image or null (or a default placeholder)
+        otherLandmarks: hostOtherLandmarks, // Add other landmarks here
         joinedDate: hostJoinedDate,
       },
       averageRatings: { // Add average ratings to preparedData
@@ -423,6 +435,13 @@ function CampingDetail() {
     setIsDescriptionModalOpen(false);
   };
 
+  const openHostModal = () => {
+    setIsHostModalOpen(true);
+  };
+  const closeHostModal = () => {
+    setIsHostModalOpen(false);
+  };
+
   // --- Render Logic ---
 
   // Render breadcrumbs early, using a placeholder name if data isn't ready
@@ -522,7 +541,7 @@ function CampingDetail() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="flex items-center gap-1 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md px-2 py-1"
+                  className="flex items-center gap-1 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md px-2 py-1 cursor-pointer"
                   aria-label="Share this camping spot"
                 >
                   <Share2 size={18} />
@@ -604,22 +623,36 @@ function CampingDetail() {
         <div className="mb-8 p-6 text-center bg-gray-100 rounded-lg text-gray-500">
           No images available for this listing.
         </div>
-      ) : images.length === 1 ? (
-        // --- Single Image Display ---
+      ) : images.length < 5 ? ( // Covers 1, 2, 3, or 4 images
+        // --- Single Image Display (for 1 to 4 images) ---
         <div className="relative mb-8 rounded-lg overflow-hidden h-[40vh] md:h-[60vh] max-h-[550px] bg-gray-100">
           <div
             className="h-full w-full cursor-pointer group"
-            onClick={() => openPhotoGallery(0)} // Allow opening in modal
+            onClick={() => openPhotoGallery(0)}
             role="button"
             tabIndex={0}
             aria-label={`View image for ${title}`}
           >
-            {/* mainImage is guaranteed to be the single image here */}
+            {/* mainImage is images[0] here, guaranteed as images.length >= 1 */}
             <ImageContainer image={mainImage} name={`${title} - View`} />
           </div>
+          {/* Show button if there are 2, 3, or 4 images total (i.e., more than the one displayed) */}
+          {images.length > 1 && (
+            <Button
+              onClick={() => openPhotoGallery(0)}
+              variant="secondary"
+              className="absolute bottom-4 right-4 bg-white text-black text-sm font-semibold px-3 py-1.5 rounded-md border border-gray-400 shadow-md hover:bg-gray-100 transition duration-150 z-10 cursor-pointer"
+            >
+              Show all {images.length} photos
+            </Button>
+          )}
         </div>
       ) : (
-        // --- Multi-Image Grid Display (images.length > 1) ---
+        // --- Multi-Image Grid Display (images.length >= 5) ---
+        // This block now handles cases with 5 or more images.
+        // MAX_SECONDARY_IMAGES is 4.
+        // Grid shows 1 main image + up to 4 secondary images.
+        // "Show all photos" button appears if images.length > 1 (main) + MAX_SECONDARY_IMAGES (4) = 5.
         <div className="relative grid grid-cols-1 md:grid-cols-4 md:grid-rows-2 gap-2 mb-8 rounded-lg overflow-hidden h-[40vh] md:h-[60vh] max-h-[550px] bg-gray-100">
           {/* Main image for the grid */}
           <div
@@ -670,7 +703,7 @@ function CampingDetail() {
             <Button
               onClick={() => openPhotoGallery(0)}
               variant="secondary"
-              className="absolute bottom-4 right-4 bg-white text-black text-sm font-semibold px-3 py-1.5 rounded-md border border-gray-400 shadow-md hover:bg-gray-100 transition duration-150 z-10"
+              className="absolute bottom-4 right-4 bg-white text-black text-sm font-semibold px-3 py-1.5 rounded-md border border-gray-400 shadow-md hover:bg-gray-100 transition duration-150 z-10 cursor-pointer"
             >
               Show all {images.length} photos
             </Button>
@@ -684,26 +717,34 @@ function CampingDetail() {
         <div className="lg:col-span-7 xl:col-span-8 space-y-8 divide-y divide-gray-200 mb-8 lg:mb-0">
           {/* --- Host Info --- */}
           {/* ... (keep existing host info logic) */}
-          <div className="pt-8 first:pt-0"> {/* This div is the section for Host Info */}
+          <div className="pt-8 first:pt-0">
             <div className="flex items-center mb-4">
-              <div className="mr-4 flex-shrink-0"> {/* Wrapper for avatar/icon for consistent spacing */}
+              <button
+                type="button"
+                onClick={openHostModal}
+                className="mr-4 flex-shrink-0 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500 group cursor-pointer"
+                aria-label={`View profile for host ${host.username || host.firstname}`}
+              >
                 {host.imageUrl ? (
                   <img
                     src={host.imageUrl}
                     alt={`Avatar of ${host.firstname}`}
-                    className="w-12 h-12 rounded-full object-cover bg-gray-200" // Removed mx-4
+                    className="w-12 h-12 rounded-full object-cover bg-gray-200 group-hover:opacity-80 transition-opacity"
                   />
                 ) : (
-                  <CircleUser className="w-12 h-12 text-gray-400" />
+                  <CircleUser className="w-12 h-12 text-gray-400 group-hover:text-gray-500 transition-colors" />
                 )}
-              </div>
+              </button>
               <div>
-                <h2 className="text-xl font-semibold text-gray-800 mb-1">
-                  Hosted by {host.firstname} {host.lastname}
-                </h2>
-                <p className="text-sm text-gray-600">
-                  Joined in {host.joinedDate}
-                </p>
+                <button
+                  type="button"
+                  onClick={openHostModal}
+                  className="text-left focus:outline-none cursor-pointer"
+                  aria-label={`View profile for host ${host.username || host.firstname}`}
+                >
+                  <h2 className="text-xl font-semibold text-gray-800 mb-0 hover:underline">Hosted by {host.username ? host.username : `${host.firstname}${host.lastname ? ` ${host.lastname}` : ''}`}</h2>
+                  <p className="text-sm text-gray-600">Joined in {host.joinedDate}</p>
+                </button>
               </div>
             </div>
           </div>
@@ -747,7 +788,7 @@ function CampingDetail() {
                     variant="outline"
                     size="sm"
                     onClick={toggleShowAllAmenities}
-                    className="flex items-center gap-1"
+                    className="flex items-center gap-1 cursor-pointer"
                   >
                     {showAllAmenities ? (
                       <>
@@ -838,6 +879,15 @@ function CampingDetail() {
           startIndex={galleryStartIndex}
           onClose={closePhotoGallery}
           campingTitle={title}
+        />
+      )}
+
+      {/* --- Host Profile Modal --- */}
+      {isHostModalOpen && host && (
+        <HostProfileModal
+          isOpen={isHostModalOpen}
+          onClose={closeHostModal}
+          host={host}
         />
       )}
 

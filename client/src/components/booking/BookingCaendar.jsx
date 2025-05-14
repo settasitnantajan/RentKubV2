@@ -259,7 +259,7 @@ const BookingCaendar = ({
     // Enhanced logging for disableDates:
     // To avoid flooding, you might want to enable this log only for specific dates you are testing,
     // e.g., if (dayKey === '2025-05-20' || dayKey === '2025-05-23') {
-    console.log(`[BookingCalendar] disableDates Check: Day ${dayKey} | Past: ${isBefore(dayStart, startOfDay(new Date()))} | No Rooms: ${totalRooms <= 0} | In fullyBookedDays Set: ${fullyBookedDays.has(dayKey)} | Result: ${isDisabled ? `DISABLED (${reason})` : 'ENABLED'}. (isSignedIn: ${isSignedIn})`);
+    // console.log(`[BookingCalendar] disableDates Check: Day ${dayKey} | Past: ${isBefore(dayStart, startOfDay(new Date()))} | No Rooms: ${totalRooms <= 0} | In fullyBookedDays Set: ${fullyBookedDays.has(dayKey)} | Result: ${isDisabled ? `DISABLED (${reason})` : 'ENABLED'}. (isSignedIn: ${isSignedIn})`);
     // }
     return isDisabled;
   };
