@@ -13,7 +13,7 @@ const LoadingSpinner = ({ customText = "Loading, please wait..." }) => {
           {/* The Rentkub word */}
           <span className="text-4xl font-bold text-red-600 tracking-tight">Rentkub</span>
         </div>
-        {customText && <p className="mt-4 text-lg text-gray-600">{customText}</p>}
+        <p className="mt-4 text-lg text-gray-600">Loading...</p>
       </div>
     </div>
   );

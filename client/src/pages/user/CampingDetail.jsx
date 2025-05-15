@@ -318,6 +318,7 @@ function CampingDetail() {
       address, // <-- Include address
       host: {
         id: hostData.id, // Assuming hostData (from camping.profile) has the host's ID
+        clerkId: hostData.clerkId,
         username: hostUsername,
         firstname: hostFirstName,
         lastname: hostLastName, 
@@ -851,7 +852,11 @@ function CampingDetail() {
               </div>
             )}
 
-            <ReviewList reviews={reviews} />
+            <ReviewList
+              reviews={reviews}
+              landmarkHostProfile={host}
+              loggedInUserId={loggedInUser?.id}
+            />
           </div>
         </div>{" "}
         {/* End Left Column */}

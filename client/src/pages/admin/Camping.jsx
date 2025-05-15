@@ -142,7 +142,7 @@ const Camping = () => {
 
   // --- Breadcrumb Items ---
   const breadcrumbItems = [
-    { label: "Create Camping" }, // Only show the current page
+    { label: "Become a host" }, // Only show the current page
   ];
 
   return (
@@ -150,7 +150,7 @@ const Camping = () => {
       <div className="mb-4"> {/* Optional: Add some margin below breadcrumbs */}
         <Breadcrums items={breadcrumbItems} />
       </div>
-      <h1 className="capitalize text-2xl font-semibold mb-4">Create Camping</h1>
+      <h1 className="capitalize text-2xl font-semibold mb-4">Create your listing</h1>
       <div className="border p-8 rounded-md bg-white shadow-sm">
         <form
           onSubmit={handleSubmit(hdlSubmit)}
@@ -308,7 +308,7 @@ const Camping = () => {
           <div className="flex justify-end pt-4 border-t mt-6">
             <Buttons
               type="submit"
-              text="Create Camping"
+              text="Complete Listing"
               isPending={isSubmitting}
             />
           </div>

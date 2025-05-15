@@ -1,10 +1,9 @@
 import ReviewCard from "./ReviewCard";
 
-const ReviewList = ({ reviews, maxReviewsToShow = 5 }) => {
+const ReviewList = ({ reviews, landmarkHostProfile, loggedInUserId, maxReviewsToShow = 5 }) => {
   if (!reviews || reviews.length === 0) {
     return <p className="text-gray-600 py-4">Be the first to review this spot!</p>;
   }
-  console.log(reviews,'reviews')
 
   // const [showAll, setShowAll] = useState(false);
   // const displayedReviews = showAll ? reviews : reviews.slice(0, maxReviewsToShow);
@@ -15,6 +14,7 @@ const ReviewList = ({ reviews, maxReviewsToShow = 5 }) => {
       {reviews.map((review) => (
         <ReviewCard
           key={review.id}
+          reviewId={review.id} // Pass the review ID
           username={review.profile?.username}
           imageUrl={review.profile?.imageUrl}
           firstName={review.profile?.firstname} // Corrected: use lowercase 'firstname'
@@ -22,7 +22,11 @@ const ReviewList = ({ reviews, maxReviewsToShow = 5 }) => {
           createdAt={review.createdAt}
           rating={review.overallRating || review.rating || 0} // Ensure rating is passed
           text={review.text}
-          // No longer passing the whole review object: review={review}
+          // hostReply={review.hostReply} // Removed as ReviewCard now derives this from comments
+          comments={review.comments} // Pass host reply object
+          statusComment={review.statusComment} // Pass statusComment
+          landmarkHostProfile={landmarkHostProfile} // Pass landmark host's profile
+          loggedInUserId={loggedInUserId} // Pass the logged-in user's ID
         />
       ))}
       {/* {reviews.length > maxReviewsToShow && !showAll && (

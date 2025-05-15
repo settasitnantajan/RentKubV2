@@ -1,5 +1,5 @@
 // /Users/duke/Documents/GitHub/RentKub/client/src/components/card/CampingCard.jsx
-import { useState, useMemo } from "react"; // Import useState and useMemo
+import { useState, useMemo, useEffect } from "react"; // Import useState, useMemo, and useEffect
 import { motion } from "motion/react";
 import { Link } from "react-router";
 import FavoriteToggleButton from "./FavoriteToggleButton";
@@ -12,7 +12,47 @@ import { calculateDistance } from "@/utils/distance";
 
 const CampingCard = ({ camping }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isPriceHovered, setIsPriceHovered] = useState(false); // State for price hover
   const userLocation = useCampingStore((state) => state.userLocation); // Get user location from store
+
+  // Determine initial max characters based on screen size
+  const getInitialMaxChars = () => {
+    if (typeof window === 'undefined') return 12; // Default for SSR
+    if (window.matchMedia("(min-width: 1280px)").matches) { // xl breakpoint
+      return 18;
+    } else if (window.matchMedia("(min-width: 1024px)").matches) { // lg breakpoint
+      return 13;
+    }
+    return 12; // Default for smaller screens
+  };
+
+  const [maxTitleChars, setMaxTitleChars] = useState(getInitialMaxChars());
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const lgMediaQuery = window.matchMedia("(min-width: 1024px)");
+    const xlMediaQuery = window.matchMedia("(min-width: 1280px)");
+
+    const handler = () => {
+      if (xlMediaQuery.matches) {
+        setMaxTitleChars(22);
+      } else if (lgMediaQuery.matches) {
+        setMaxTitleChars(12);
+      } else {
+        setMaxTitleChars(12);
+      }
+    };
+
+    lgMediaQuery.addEventListener("change", handler);
+    xlMediaQuery.addEventListener("change", handler);
+
+    return () => {
+      lgMediaQuery.removeEventListener("change", handler);
+      xlMediaQuery.removeEventListener("change", handler);
+    };
+  }, []);
+
 
   const images = camping.images || []; // Ensure images is an array
 
@@ -48,14 +88,15 @@ const CampingCard = ({ camping }) => {
     return null;
   }, [userLocation, camping.lat, camping.lng]); // Recalculate only if these change
 
-  // --- Truncate title if more than 10 words ---
-  // --- Updated: Truncate title if more than 18 characters ---
+  // --- Truncate title based on screen size if more than 18 characters ---
   const displayTitle = useMemo(() => {
-    if (camping.title.length > 18) {
-      return camping.title.substring(0, 13) + "...";
+    const title = camping.title;
+    if (title.length > 18) { // Condition for truncation remains
+      return title.substring(0, maxTitleChars) + "...";
     }
-    return camping.title;
-  }, [camping.title]);
+    return title; // No truncation needed
+  }, [camping.title, maxTitleChars]); // Dependency updated to maxTitleChars
+
 
   return (
     <motion.div
@@ -161,10 +202,23 @@ const CampingCard = ({ camping }) => {
           </p>
 
           {/* Price */}
-          <p className="text-md text-gray-900 pt-0.5">
+          <div
+            className="relative text-md text-gray-900 pt-0.5 transition-transform duration-200 ease-in-out hover:scale-105 origin-left" // Added hover scale and transition
+            onMouseEnter={() => setIsPriceHovered(true)}
+            onMouseLeave={() => setIsPriceHovered(false)} // Keep mouse leave for modal
+          >
+            {/* Original price display (always visible) */}
             <span className="font-semibold underline">฿{formatNumber(camping.price * 5)}</span>
             <span className="font-normal text-gray-600"> for 5 nights</span>
-          </p>
+
+            {/* Floating modal for 1-night price */}
+            {isPriceHovered && (
+              <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-white py-1.5 px-2.5 rounded-md shadow-xl text-xs whitespace-nowrap z-30 border border-gray-200">
+                <span className="font-semibold text-gray-800">฿{formatNumber(camping.price)}</span>
+                <span className="text-gray-600"> per night</span>
+              </div>
+            )}
+          </div>
         </div>
       </Link>
     </motion.div>

@@ -129,6 +129,14 @@ exports.readCamping = async (req, res, next) => {
                 clerkId: true, // Useful for keys or other identification
               },
             },
+            // Include comments associated with the review (this is where host replies will be)
+            comments: {
+              include: {
+                profile: { // Include the profile of the commenter (could be the host)
+                  select: { firstname: true, lastname: true, username: true, imageUrl: true, clerkId: true }
+                }
+              },
+            },
           },
         },
         // Assuming you also want to show host details

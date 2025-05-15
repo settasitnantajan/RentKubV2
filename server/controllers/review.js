@@ -1,4 +1,5 @@
 const prisma = require("../config/prisma");
+const renderError = require("../utils/renderError"); // Assuming you have this utility
 
 exports.createReview = async (req, res) => {
   const profileId = req.auth.userId;
@@ -87,5 +88,73 @@ exports.createReview = async (req, res) => {
         return res.status(409).json({ message: "Failed to link review to booking. Please try again." });
     }
     res.status(500).json({ message: "Internal server error while submitting review." });
+  }
+};
+
+// Note: The addHostReplyToReview function still exists and uses a different logic (updating the Review model).
+// You might want to refactor addHostReplyToReview to use createComment instead for consistency,
+// potentially adding a flag or checking the profileId to identify it as a host reply if needed.
+
+// --- New Function to Create Host Reply Comment ---
+exports.createHostReplyComment = async (req, res, next) => {
+  try {
+    const hostClerkId = req.auth.userId; // Authenticated user (host)
+    const { reviewId } = req.params; // Get reviewId from URL params
+    const { text } = req.body; // Get reply text from body
+
+    if (!hostClerkId) {
+      return renderError(res, 401, "Host not authenticated.");
+    }
+    if (!text || typeof text !== 'string' || text.trim() === "") {
+      return renderError(res, 400, "Reply text is required.");
+    }
+    if (isNaN(parseInt(reviewId))) {
+      return renderError(res, 400, "Invalid review ID format.");
+    }
+
+    const reviewIdNum = parseInt(reviewId);
+
+    // 1. Find the review and its associated landmark to verify host ownership and get landmarkId
+    const review = await prisma.review.findUnique({
+      where: { id: reviewIdNum },
+      select: { // Select only necessary fields
+        id: true,
+        landmarkId: true,
+        landmark: {
+          select: {
+            profileId: true, // This is the clerkId of the landmark owner (host)
+          },
+        },
+      },
+    });
+
+    if (!review) {
+      return renderError(res, 404, "Review not found.");
+    }
+
+    // 2. Authorization: Check if the authenticated user is the host of the landmark
+    if (review.landmark.profileId !== hostClerkId) {
+      return renderError(res, 403, "You are not authorized to reply to this review.");
+    }
+
+    // 3. Create the comment (host reply)
+    const newComment = await prisma.comment.create({
+      data: {
+        text: text.trim(),
+        profileId: hostClerkId,      // The host (authenticated user) making the reply
+        reviewId: reviewIdNum,       // Link to the specific review
+        landmarkId: review.landmarkId, // Link to the landmark the review is about
+      },
+      include: { // Include profile to return necessary data for frontend display
+        profile: {
+          select: { firstname: true, lastname: true, username: true, imageUrl: true, clerkId: true }
+        }
+      }
+    });
+
+    res.status(201).json({ message: "Host reply added successfully.", comment: newComment });
+  } catch (error) {
+    console.error("Error creating host reply comment:", error);
+    next(error);
   }
 };

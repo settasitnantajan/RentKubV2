@@ -18,7 +18,7 @@ model Profile {
   clerkId   String     @unique
   firstname String
   lastname  String
-  username  String?    // You can make this required (String) or unique (String @unique) if needed
+  username  String? // You can make this required (String) or unique (String @unique) if needed
   imageUrl  String?
   email     String
   createAt  DateTime   @default(now())
@@ -52,8 +52,8 @@ model Landmark {
   profileId   String
   bookings    Booking[]
   favorites   Favorite[]
-  comments    Comment[] // <-- Add relation to comments
   reviews     Review[] // Relation to reviews
+  Comment     Comment[]
 }
 
 model Booking {
@@ -99,8 +99,11 @@ model Comment {
   profile   Profile @relation(fields: [profileId], references: [clerkId])
   profileId String // User who made the comment
 
+  // This comment can be a reply to a specific Review or a general comment on a landmark
+  review     Review?  @relation(fields: [reviewId], references: [id])
+  reviewId   Int? // Foreign key to the Review model (optional for general comments)
   landmark   Landmark @relation(fields: [landmarkId], references: [id])
-  landmarkId Int // Landmark the comment is about
+  landmarkId Int
 }
 
 model Review {
@@ -112,6 +115,7 @@ model Review {
   text                  String?  @db.VarChar(1000) // Optional review text (comment)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
+  statusComment Boolean @default(false) // Indicates if the host has commented
 
   profile    Profile  @relation(fields: [profileId], references: [clerkId])
   profileId  String // User who made the review
@@ -120,4 +124,7 @@ model Review {
 
   // @@unique([profileId, landmarkId]) // Removed to allow multiple reviews for a landmark via different bookings
   Booking Booking?
+
+  // A review can have multiple comments (e.g., host replies)
+  comments Comment[] // Relation to comments (host replies)
 }

@@ -29,3 +29,28 @@ export const submitReview = async (token, reviewData) => {
     throw error.response?.data || new Error("Failed to submit review. Please try again.");
   }
 };
+
+/**
+ * Creates a host's reply comment to a review.
+ * @param {string} token - The authentication token of the host.
+ * @param {string} reviewId - The ID of the review being replied to.
+ * @param {string} replyText - The text of the host's reply.
+ * @returns {Promise<object>} The response from the API (likely the updated review or host reply object).
+ */
+export const createHostReplyComment = async (token, reviewId, replyText) => {
+  try {
+    const response = await axios.post(
+      `${API_BASE_URL}/reviews/${reviewId}/reply`, // Endpoint for host reply
+      { text: replyText },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data; // Assuming the backend returns the updated review or the new reply
+  } catch (error) {
+    console.error("Error submitting host reply:", error.response?.data || error.message || error);
+    throw error.response?.data || new Error("Failed to submit host reply. Please try again.");
+  }
+};
